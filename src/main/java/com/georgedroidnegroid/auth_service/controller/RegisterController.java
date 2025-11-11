@@ -60,10 +60,9 @@ public class RegisterController implements RegisterApi {
             return ResponseEntity.badRequest().body(Map.of("error", "Validation failed"));
         }
 
-        User user = convertToUser(userDto);
-        userService.registerUser( user.getEmail(), user.getPasswordHash());
+        userService.registerUser(userDto.getEmail(), userDto.getPassword());
 
-        Optional<User> savedUserOptional = userService.findByEmail(user.getEmail());
+        Optional<User> savedUserOptional = userService.findByEmail(userDto.getEmail());
 
         User savedUser = savedUserOptional.orElseThrow(() ->
                 new UsernameNotFoundException("User not found after registration"));
