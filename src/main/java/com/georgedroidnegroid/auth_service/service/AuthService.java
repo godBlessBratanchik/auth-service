@@ -25,7 +25,6 @@ public class AuthService {
 
     @Transactional
     public void save(User user) {
-
         authRepository.save(user);
     }
 
@@ -33,7 +32,6 @@ public class AuthService {
     public void delete(User user) {
         authRepository.delete(user);
     }
-
 
     @Transactional
     public void registerUser(String email, String password) {
@@ -48,16 +46,12 @@ public class AuthService {
         User user = authRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        System.out.println("Input password: " + password);
-        System.out.println("Stored password hash: " + user.getPasswordHash());
-
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new BadCredentialsException("Invalid password");
         }
 
         return user;
     }
-
 
     public Optional<User> findByEmail(String email) {
         return authRepository.findByEmail(email);

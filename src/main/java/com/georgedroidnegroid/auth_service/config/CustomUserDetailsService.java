@@ -1,6 +1,5 @@
 package com.georgedroidnegroid.auth_service.config;
 
-
 import com.georgedroidnegroid.auth_service.entity.User;
 import com.georgedroidnegroid.auth_service.repository.AuthRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,8 +7,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
-
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -31,5 +28,4 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .password(user.getPasswordHash())
                 .build();
     }
-
 }
