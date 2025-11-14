@@ -43,8 +43,8 @@ class AuthIntegrationTest {
         authRepository.deleteAll();
 
         testUserDto = UserRegisterDto.builder()
-                .email("integration@test.com")
-                .password("testPassword123")
+                .email("elbondarenko04@gmail.com")
+                .password("123")
                 .build();
     }
 
