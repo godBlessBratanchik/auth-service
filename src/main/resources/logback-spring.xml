@@ -72,4 +72,3 @@
         <logger name="com.georgedroidnegroid.auth_service" level="DEBUG"/>
     </springProfile>
 </configuration>
-

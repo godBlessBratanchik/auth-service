@@ -40,6 +40,8 @@ public class WebSecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/register", "/auth/login").permitAll()
+                        // Actuator endpoints for monitoring (Prometheus, health checks)
+                        .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 ).csrf(AbstractHttpConfigurer::disable);
 
