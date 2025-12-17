@@ -75,3 +75,5 @@ jobs:
     - name: Image digest
       run: echo "Image pushed with digest ${{ steps.meta.outputs.digest }}"
 
+
+
