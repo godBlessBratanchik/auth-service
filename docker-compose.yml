@@ -1,6 +1,10 @@
 version: '3.8'
 
 services:
+  # ===========================================
+  # APPLICATION SERVICES
+  # ===========================================
+  
   # Auth Service
   auth-service:
     build:
@@ -22,12 +26,16 @@ services:
       # Kafka configuration
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       
-      # JWT configuration (example - set your own secret)
+      # JWT configuration
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this-in-production}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       
       # Java options
       JAVA_OPTS: "-Xmx512m -Xms256m"
+      
+      # Logging profile for Docker
+      SPRING_PROFILES_ACTIVE: docker
+      ENVIRONMENT: docker
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,6 +44,9 @@ services:
     networks:
       - auth-network
     restart: unless-stopped
+    labels:
+      - "logging=promtail"
+      - "logging_jobname=auth-service"
   
   # PostgreSQL Database
   postgres:
@@ -88,8 +99,102 @@ services:
       - auth-network
     restart: unless-stopped
 
+  # ===========================================
+  # OBSERVABILITY STACK
+  # ===========================================
+
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: auth-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    networks:
+      - auth-network
+    restart: unless-stopped
+
+  # Grafana - Visualization & Dashboards
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: auth-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - auth-network
+    restart: unless-stopped
+
+  # Loki - Log Aggregation
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: auth-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./observability/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/tmp/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - auth-network
+    restart: unless-stopped
+
+  # Promtail - Log Collector for Loki
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: auth-promtail
+    volumes:
+      - ./observability/loki/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - auth-network
+    restart: unless-stopped
+
+  # PostgreSQL Exporter - Database Metrics for Prometheus
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.14.0
+    container_name: auth-postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres:5432/authdb?sslmode=disable"
+    depends_on:
+      - postgres
+    networks:
+      - auth-network
+    restart: unless-stopped
+
 volumes:
   postgres-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  loki-data:
     driver: local
 
 networks:
